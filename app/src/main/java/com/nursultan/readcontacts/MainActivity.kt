@@ -20,7 +20,30 @@ class MainActivity : AppCompatActivity() {
         if (contactsPermission)
             requestContacts()
         else
-            Log.d("MainActivity", "Read contacts permission is denied!")
+            requestPermission()
+    }
+
+    private fun requestPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(android.Manifest.permission.READ_CONTACTS),
+            READ_CONTACTS_RC
+        )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == READ_CONTACTS_RC && grantResults.isNotEmpty()) {
+            val permissionGranted = grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (permissionGranted)
+                requestContacts()
+            else
+                Log.d("MainActivity", "Permission denied!")
+        }
     }
 
     private fun requestContacts() {
@@ -34,13 +57,15 @@ class MainActivity : AppCompatActivity() {
             val name = this.getString(
                 this.getColumnIndexOrThrow(Contacts.DISPLAY_NAME)
             )
-            val phoneNum = this.getString(
+            val hasPhoneNum = this.getInt(
                 this.getColumnIndexOrThrow(Contacts.HAS_PHONE_NUMBER)
-            )
+            ) > HAS_NO_PHONE_NUMBER
             var phoneNumber: String? = null
             val phoneNumCursor = contentResolver?.query(
-                Phone.CONTENT_URI, null,
-                Phone._ID + "=" + id, null,
+                Phone.CONTENT_URI,
+                null,
+                Phone.CONTACT_ID + "=" + id,
+                null,
                 null
             )
             while (phoneNumCursor?.moveToNext() == true) with(phoneNumCursor)
@@ -48,8 +73,19 @@ class MainActivity : AppCompatActivity() {
                 phoneNumber = this.getString(this.getColumnIndexOrThrow(Phone.NUMBER))
             }
             phoneNumCursor?.close()
-            Log.d("MainActivity", "name: $name phone number: $phoneNumber")
+            val contact = Contact(
+                name,
+                phoneNumber,
+                hasPhoneNum
+            )
+
+            Log.d("MainActivity", contact.toString())
         }
         cursor?.close()
+    }
+
+    companion object {
+        const val READ_CONTACTS_RC = 100
+        const val HAS_NO_PHONE_NUMBER = 0
     }
 }
