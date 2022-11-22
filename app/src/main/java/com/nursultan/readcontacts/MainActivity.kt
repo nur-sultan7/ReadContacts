@@ -3,7 +3,6 @@ package com.nursultan.readcontacts
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.provider.ContactsContract
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.Contacts
 import android.util.Log
@@ -13,14 +12,19 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        checkPermission()
+    }
+
+    private fun checkPermission() {
         val contactsPermission = ActivityCompat.checkSelfPermission(
             this,
             android.Manifest.permission.READ_CONTACTS
         ) == PackageManager.PERMISSION_GRANTED
-        if (contactsPermission)
+        if (contactsPermission) {
             requestContacts()
-        else
+        } else {
             requestPermission()
+        }
     }
 
     private fun requestPermission() {
@@ -36,20 +40,24 @@ class MainActivity : AppCompatActivity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == READ_CONTACTS_RC && grantResults.isNotEmpty()) {
             val permissionGranted = grantResults[0] == PackageManager.PERMISSION_GRANTED
-            if (permissionGranted)
+            if (permissionGranted) {
                 requestContacts()
-            else
-                Log.d("MainActivity", "Permission denied!")
+            } else {
+                Log.d("MainActivity", "Contacts read permission denied!")
+            }
         }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     private fun requestContacts() {
         val cursor = contentResolver?.query(
             Contacts.CONTENT_URI,
-            null, null, null, null
+            null,
+            null,
+            null,
+            null
         )
         while (cursor?.moveToNext() == true) with(cursor)
         {
@@ -64,7 +72,7 @@ class MainActivity : AppCompatActivity() {
             val phoneNumCursor = contentResolver?.query(
                 Phone.CONTENT_URI,
                 null,
-                Phone.CONTACT_ID + "=" + id,
+                "${Phone.CONTACT_ID}=$id",
                 null,
                 null
             )
@@ -74,6 +82,7 @@ class MainActivity : AppCompatActivity() {
             }
             phoneNumCursor?.close()
             val contact = Contact(
+                id,
                 name,
                 phoneNumber,
                 hasPhoneNum
